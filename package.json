@@ -14,9 +14,18 @@
     "tutorial",
     "demo"
   ],
-  "author": "GitHub",
-  "license": "CC0-1.0",
+  "author": "luungoc2005",
+  "license": "",
   "devDependencies": {
-    "electron": "^1.4.1"
+    "electron": "^1.4.1",
+    "electron-rebuild": "^1.5.6"
+  },
+  "dependencies": {
+    "bootstrap": "^3.3.7",
+    "d3": "^4.4.1",
+    "jquery": "^3.1.1",
+    "lame": "^1.2.4",
+    "speaker": "^0.3.0",
+    "wav": "^1.0.1"
   }
 }
