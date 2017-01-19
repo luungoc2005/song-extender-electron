@@ -12,8 +12,6 @@ var bitDepth,
 
 var fftWriter = function (format, size)
 {
-    Writable.call(this, {objectMode: true});
-
     bitDepth = format.bitDepth;
     channels = format.channels;
     signed = format.signed;
@@ -21,6 +19,8 @@ var fftWriter = function (format, size)
 
     fftSize = size;
     fft = new DSP.FFT(fftSize, format.sampleRate);
+
+    Writable.call(this, { objectMode: true });
 }
 util.inherits(fftWriter, Writable);
 
@@ -48,45 +48,66 @@ function createSourceBuffer(chunk)
 
 function createEmptyBuffer(length)
 {
-    var newLength = length / (bitDepth / 8) / 2;
     switch (bitDepth)
     {
         case 8:
             return (signed) ?
-                new Int8Array(newLength) : new Uint8Array(newLength);
+                new Int8Array(length) : new Uint8Array(length);
             break;
         case 16:
             return (signed) ?
-                new Int16Array(newLength) : new Uint16Array(newLength);
+                new Int16Array(length) : new Uint16Array(length);
             break;
         case 32:
             return (signed) ?
-                new Int32Array(newLength) : new Uint32Array(newLength);
+                new Int32Array(length) : new Uint32Array(length);
             break;
         default:
-            return new Int16Array(length / 4);
+            return new Int16Array(length);
             break;
     }
 };
 
+var current;
 fftWriter.prototype._write = function(chunk, encoding, callback)
 {
-    var current, left;
-    var buffer = createSourceBuffer(chunk);
-
-    left = buffer;
-    while ((current = left.slice(0, fftSize)) && left.length > 0)
+    var left;
+    left = createSourceBuffer(chunk);
+    while (left.length > 0)
     {
-        left = left.slice(fftSize);
-        if (current.length < fftSize) 
+        if (!current || current.length >= fftSize) 
         {
-            var filler = createEmptyBuffer(fftSize - current.length);
-            Array.prototype.push.apply(current, filler);
+            if (left.length > fftSize) 
+            {
+                current = left.slice(0, fftSize);
+                left = left.slice(fftSize);
+            }
+            else
+            {
+                current = left;
+                left = {};
+            }
         }
-        fft.forward(current);
-        //this.push(fft.spectrum);
-        this.emit('fft', fft.spectrum);
+        else
+        {
+            var filler = createEmptyBuffer(Math.min(fftSize, current.length + left.length));
+            var fillLength = filler.length - current.length;
+            //console.log(`old buffer exists, filling ${fillLength}`);
+            filler.set(current);
+            filler.set(left.slice(0, fillLength), current.length);
+            //current.push(left.slice(0, fillLength));
+            left = left.slice(fillLength);
+            current = filler;
+        }
+        
+        if (current.length == fftSize)
+        {
+            fft.forward(current);
+            this.emit('fft', fft.spectrum);
+        }
     }
+
     callback();
 };
+
 module.exports = fftWriter;

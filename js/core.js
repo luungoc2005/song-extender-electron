@@ -68,3 +68,14 @@ ipc.on('open-file-dialog', function (event) {
     }
   })
 })
+
+// FFT functions
+ipc.on('fft', function (data) 
+{
+
+})
+
+ipc.on('fft_clear', function (data) 
+{
+
+})
