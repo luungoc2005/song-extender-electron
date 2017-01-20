@@ -276,6 +276,7 @@ function FourierTransform(bufferSize, sampleRate) {
       rval = real[i];
       ival = imag[i];
       mag = bSi * sqrt(rval * rval + ival * ival);
+      //mag = sqrt(rval * rval + ival * ival);
 
       if (mag > this.peak) {
         this.peakBand = i;

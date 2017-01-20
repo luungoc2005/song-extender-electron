@@ -7,8 +7,8 @@ var bitDepth,
     signed,
     sampleRate,
     fftSize,
-    fft,
-    emitter;
+    emitter,
+    fft;
 
 var fftWriter = function (format, size)
 {
@@ -16,9 +16,10 @@ var fftWriter = function (format, size)
     channels = format.channels;
     signed = format.signed;
     sampleRate = format.sampleRate;
-
+    
     fftSize = size;
-    fft = new DSP.FFT(fftSize, format.sampleRate);
+
+    fft = new DSP.FFT(fftSize, sampleRate);
 
     Writable.call(this, { objectMode: true });
 }
@@ -103,7 +104,8 @@ fftWriter.prototype._write = function(chunk, encoding, callback)
         if (current.length == fftSize)
         {
             fft.forward(current);
-            this.emit('fft', fft.spectrum);
+            var retVal = fft.spectrum;
+            this.emit('fft', retVal);
         }
     }
 

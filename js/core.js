@@ -7,9 +7,15 @@ const window = require('electron').BrowserWindow
 const path = require('path')
 const fs = require('fs')
 
+function sendToMainWindow(event, data) 
+{
+    var mainWindow = window.getFocusedWindow();
+    if (mainWindow) mainWindow.webContents.send(event, data);
+}
+
 function onHandledError(err)
 {
-    window.getFocusedWindow().webContents.send('handled-error', err)
+    sendToMainWindow('handled-error', err)
     //dialog.showErrorBox('Error', err)
 }
 
@@ -37,14 +43,26 @@ function openFile(file)
         var AudioDownsampler = require('./stream/audioDownsampler.js');
         var StereoToMonoReader = require('./stream/stereoToMonoReader.js');
         var FFTWriter = require('./stream/fftWriter.js');
+        var FFTAnalyser = require('./analyser.js');
         var transform = new StereoToMonoReader(format);
         var downsample = new AudioDownsampler(format);
         //var speaker = new Speaker(format);
         var fft = new FFTWriter(format, 4096);
+        var analyser = new FFTAnalyser(format, 4096);
 
-        fft.on('fft', function (data)
+        //sendToMainWindow('fft-clear', []);
+
+        fft.on('fft', function (fftResult)
             {
-                console.log(data);
+                analyser.fftAvailable(fftResult);
+                //sendToMainWindow('fft', fftResult);
+            });
+        
+        fft.on('finish', function()
+            {
+                var scores = analyser.calculateScores();
+                console.log(JSON.stringify(scores));
+                sendToMainWindow('analyse-result', scores);
             });
 
         //onHandledError(format);
@@ -53,7 +71,8 @@ function openFile(file)
     stream.pipe(reader);
 }
 
-ipc.on('open-file-dialog', function (event) {
+ipc.on('open-file-dialog', function (event) 
+{
   dialog.showOpenDialog({
     properties: ['openFile'],
     filters: [
@@ -67,15 +86,4 @@ ipc.on('open-file-dialog', function (event) {
         openFile(uri);
     }
   })
-})
-
-// FFT functions
-ipc.on('fft', function (data) 
-{
-
-})
-
-ipc.on('fft_clear', function (data) 
-{
-
 })
