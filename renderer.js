@@ -7,6 +7,7 @@ const ipc = require('electron').ipcRenderer
 const selectDirBtn = $('.open-file-btn')
 const player = $("#player");
 const player2 = $("#player2");
+const progressbar = $(".progress-bar");
 
 selectDirBtn.click(function (event)
 {
@@ -92,11 +93,40 @@ ipc.on('fft-clear', function (sender, data)
     currentHeight = 0;
 })*/
 
+ipc.on('calc-progress', function(event, progress)
+{
+    var prg = Math.round(progress, 2);
+    progressbar.html(`${prg}%`);
+    progressbar.css("width", `${prg}%`);
+    progressbar.attr("aria-valuenow", prg);
+})
+
 ipc.on('analyse-result', function (event, timeStamps)
 {
     player.data("result", timeStamps);
     player.data("pos", 0);
     player.data("playing", 0);
+
+    player.attr("volume", 1);
+    player2.attr("volume", 1);
+
+    var togglePlay = function (entity, action)
+    {
+        switch (action) {
+        case "play":
+            entity.trigger("play"); //play the new track
+            entity.stop(true).animate({volume: 1}, 800);
+            break;
+        case "pause":
+            entity.stop(true).animate({volume: 0}, 800, 
+                function () {
+                    entity.trigger("pause");
+                });
+            break;
+        default:
+            break;
+		}
+    }
 
     var timeUpdate = function ()
     {
@@ -107,7 +137,8 @@ ipc.on('analyse-result', function (event, timeStamps)
         {
             var time1 = result[pos][0];
             var time2 = result[pos][1];
-            if (player.prop("currentTime") >= time2)
+            if (player.prop("currentTime") >= time2 ||
+                player2.prop("currentTime") >= time2)
             {
                 if (playing == 0)
                 {
@@ -117,8 +148,8 @@ ipc.on('analyse-result', function (event, timeStamps)
                     player.prop("currentTime", time1);
                     player2.prop("currentTime", time1);
 
-                    player.trigger("pause");
-                    player2.trigger("play");
+                    togglePlay(player, "pause");
+                    togglePlay(player2, "play");
                 }
                 else
                 {
@@ -128,10 +159,9 @@ ipc.on('analyse-result', function (event, timeStamps)
                     player.prop("currentTime", time1);
                     player2.prop("currentTime", time1);
 
-                    player.trigger("play");
-                    player2.trigger("pause");
+                    togglePlay(player, "play");
+                    togglePlay(player2, "pause");
                 }
-                //player.trigger("seek", time1);
             }
         }
     }
