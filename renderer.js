@@ -9,9 +9,14 @@ const player = $("#player");
 const player2 = $("#player2");
 const progressbar = $(".progress-bar");
 
+var playDelay = 15; // playing delay time, in ms
+var pauseDelay = 0;
+
+// probabilities
+
 selectDirBtn.click(function (event)
 {
-  ipc.send('open-file-dialog')
+    ipc.send('open-file-dialog')
 })
 
 ipc.on('selected-file', function (event, path)
@@ -41,7 +46,7 @@ ipc.on('handled-error', function (event, path)
         }
 })
 
-// FFT functions
+// FFT spectrum analyser
 
 /*var currentHeight = 0;
 ipc.on('fft', function (sender, data) 
@@ -101,72 +106,126 @@ ipc.on('calc-progress', function(event, progress)
     progressbar.attr("aria-valuenow", prg);
 })
 
-ipc.on('analyse-result', function (event, timeStamps)
+ipc.on('analyse-result', function (event, data)
 {
-    player.data("result", timeStamps);
+    player.data("result", data.groups);
     player.data("pos", 0);
     player.data("playing", 0);
 
-    player.attr("volume", 1);
-    player2.attr("volume", 1);
+    player.prop("volume", 1);
+    player2.prop("volume", 0);
+    
+    player.css("display", "initial");
+    player2.css("display", "none");
+
+    player.trigger("load");
+    player2.trigger("load");
+
+    //draw charts
+    var chartModule = require('./js/chart.js');
+    var chartGroup = chartModule.createChord(data, "svg");
 
     var togglePlay = function (entity, action)
     {
         switch (action) {
         case "play":
+            //entity.prop("volume", 1);
             entity.trigger("play"); //play the new track
-            entity.stop(true).animate({volume: 1}, 800);
+            entity.stop(true).animate({volume: 1}, playDelay);
+            entity.css("display", "initial");
             break;
         case "pause":
-            entity.stop(true).animate({volume: 0}, 800, 
+            entity.css("display", "none");
+            entity.stop(true).animate({volume: 0}, pauseDelay, 
                 function () {
                     entity.trigger("pause");
                 });
+            //entity.trigger("pause");
             break;
         default:
             break;
 		}
     }
 
-    var timeUpdate = function ()
+    var togglePlayer = function (time1, time2)
     {
         var playing = player.data("playing");
-        var pos = player.data("pos");
+        var pos = +player.data("pos");
+        if (playing == 0)
+        {
+            player.data("playing", 1);
+            player2.prop("currentTime", time1);
+
+            togglePlay(player, "pause");
+            togglePlay(player2, "play");
+            
+            //player.prop("currentTime", time1);
+        }
+        else
+        {
+            player.data("playing", 0);
+            player.prop("currentTime", time1);
+
+            togglePlay(player, "play");
+            togglePlay(player2, "pause");
+
+            //player2.prop("currentTime", time1);
+        }
+    }
+
+    var getCurrentPlayer = function()
+    {
+        var playing = player.data("playing");
+        if (playing == 0)
+        {
+            return player;
+        }
+        else
+        {
+            return player2;
+        }
+    }
+
+    var getCurrentTime = function()
+    {
+        return +getCurrentPlayer().prop("currentTime");
+    }
+
+    var decideFunc = function(probability)
+    {
+        return (Math.random() <= probability)
+    }
+
+    var timeUpdate = function ()
+    {
+        var pos = +player.data("pos");
         var result = player.data("result");
         if (pos < result.length)
         {
-            var time1 = result[pos][0];
-            var time2 = result[pos][1];
-            if (player.prop("currentTime") >= time2 ||
-                player2.prop("currentTime") >= time2)
+            var time1 = +result[pos].time1;
+            var time2 = +result[pos].time2;
+            var currentTime = +getCurrentTime();
+            chartModule.setChartTime(chartGroup, Math.round(currentTime));
+            if (currentTime >= time2)
             {
-                if (playing == 0)
+                var delay = currentTime - time2;
+                //console.log(`Delay: ${delay}s`)
+                time1 -= (delay);
+                togglePlayer(time1, time2);
+                if (pos + 1 >= result.length)
                 {
-                    player.data("pos", pos + 1);
-                    player.data("playing", 1);
-
-                    player.prop("currentTime", time1);
-                    player2.prop("currentTime", time1);
-
-                    togglePlay(player, "pause");
-                    togglePlay(player2, "play");
+                    player.data("pos", 0);
                 }
                 else
                 {
-                    player.data("pos", pos + 1);
-                    player.data("playing", 0);
-
-                    player.prop("currentTime", time1);
-                    player2.prop("currentTime", time1);
-
-                    togglePlay(player, "play");
-                    togglePlay(player2, "pause");
+                    player.data("pos", pos + 1);                    
                 }
             }
         }
     }
 
-    player.on("timeupdate", timeUpdate);
-    player2.on("timeupdate", timeUpdate);
+    //player.on("timeupdate", timeUpdate);
+    //player2.on("timeupdate", timeUpdate);
+    setInterval(timeUpdate, 1000/60);
     player.trigger("play");
 })

@@ -2,7 +2,7 @@ const Writable = require('stream').Writable;
 const util = require('util');
 const DSP = require('./dsp.js');
 
-var bitDepth,
+let bitDepth,
     channels,
     signed,
     sampleRate,
@@ -21,8 +21,17 @@ var fftWriter = function (format, size)
 
     fft = new DSP.FFT(fftSize, sampleRate);
 
-    Writable.call(this, { objectMode: true });
+    Writable.call(this, 
+        { 
+            objectMode: true
+        });
+    
+/*    setTimeout(function () 
+        {
+            this.end();
+        }, 16000);*/
 }
+module.exports = fftWriter;
 util.inherits(fftWriter, Writable);
 
 function createSourceBuffer(chunk)
@@ -69,13 +78,14 @@ function createEmptyBuffer(length)
     }
 };
 
-var current;
+let current = [];
+let left = [];
 fftWriter.prototype._write = function(chunk, encoding, callback)
 {
-    var left;
     left = createSourceBuffer(chunk);
     while (left.length > 0)
     {
+        //console.log(`Read ${current.length} - ${left.length}`)
         if (!current || current.length >= fftSize) 
         {
             if (left.length > fftSize) 
@@ -86,30 +96,36 @@ fftWriter.prototype._write = function(chunk, encoding, callback)
             else
             {
                 current = left;
-                left = {};
-            }
+                left = [];
+            }                
+            //console.log(current.length + "-" + left.length);
         }
         else
-        {
+        {                
             var filler = createEmptyBuffer(Math.min(fftSize, current.length + left.length));
             var fillLength = filler.length - current.length;
-            //console.log(`old buffer exists, filling ${fillLength}`);
             filler.set(current);
             filler.set(left.slice(0, fillLength), current.length);
-            //current.push(left.slice(0, fillLength));
             left = left.slice(fillLength);
             current = filler;
+            //console.log(current.length + "-" + left.length);
         }
         
         if (current.length == fftSize)
         {
+            var totalEnergy = 0;
+            for (var i = 0; i < fftSize; i++)
+            {
+                totalEnergy += Math.abs(current[i]);
+            }
             fft.forward(current);
             var retVal = fft.spectrum;
-            this.emit('fft', retVal);
+            this.emit('fft', 
+            {
+                fft: retVal,
+                total: totalEnergy
+            });
         }
     }
-
     callback();
 };
-
-module.exports = fftWriter;

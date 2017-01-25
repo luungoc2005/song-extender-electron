@@ -4,6 +4,19 @@
 const path = require('path')
 const fs = require('fs')
 
+const Speaker = require('speaker');
+const AudioDownsampler = require('./stream/audioDownsampler.js');
+const StereoToMonoReader = require('./stream/stereoToMonoReader.js');
+const FFTWriter = require('./stream/fftWriter.js');
+const FFTAnalyser = require('./analyser.js');
+
+let transform;
+let downsample;
+let fft;
+let analyser;
+let fftCount;
+//let speaker;
+
 function sendToMainWindow(event, data) 
 {
     //var mainWindow = window.getFocusedWindow();
@@ -25,6 +38,10 @@ process.on('message', function (data)
     openFile(data.fileName);
 })
 
+process.stdin.on('data', function(data){
+    console.log('stdin:'+data);
+});
+
 function openFile(file)
 {
     var buffer = Buffer.alloc(65536);
@@ -45,17 +62,12 @@ function openFile(file)
     }
     reader.on('format', function (format)
     {
-        var Speaker = require('speaker');
-        var AudioDownsampler = require('./stream/audioDownsampler.js');
-        var StereoToMonoReader = require('./stream/stereoToMonoReader.js');
-        var FFTWriter = require('./stream/fftWriter.js');
-        var FFTAnalyser = require('./analyser.js');
-
-        var transform = new StereoToMonoReader(format);
-        var downsample = new AudioDownsampler(format);
-        //var speaker = new Speaker(format);
-        var fft = new FFTWriter(format, 2048);
-        var analyser = new FFTAnalyser(format, 2048);
+        transform = new StereoToMonoReader(format);
+        downsample = new AudioDownsampler(format);
+        speaker = new Speaker(format);
+        fft = new FFTWriter(format, 2048);
+        analyser = new FFTAnalyser(format, 2048);
+        fftCount = 0;
         
         //sendToMainWindow('fft-clear', []);
 
@@ -70,22 +82,33 @@ function openFile(file)
                 sendToMainWindow('analyse-result', results);
             });
 
-        fft.on('fft', function (fftResult)
-            {
-                onHandledError(`FFT: ${file}`);
-                analyser.fftAvailable(fftResult);
-                //sendToMainWindow('fft', fftResult);
-            });
-        
         fft.on('finish', function()
             {
+                console.log("Finish reading file");
                 onHandledError(`Analysing: ${file}`);
                 analyser.calculateScores();
             });
-            
+
+        fft.on('fft', function (fftResult)
+            {
+                //fftCount +=1;
+                //onHandledError(`FFT: ${file} - ${JSON.stringify(format)} - ${fftCount}`);
+                onHandledError(`FFT: ${file} - ${JSON.stringify(format)}`);
+                analyser.fftAvailable(fftResult);
+                //sendToMainWindow('fft', fftResult);
+            });
+
+/*        speaker.on('finish', function()
+            {                
+                onHandledError(`Playing: ${file} - ${JSON.stringify(format)}`);
+                console.log("finished");              
+            })*/
+        
         onHandledError(`File opened: ${file}`);
         //onHandledError(format);
         reader.pipe(transform).pipe(downsample).pipe(fft);
+        //reader.pipe(transform).pipe(downsample).pipe(speaker);
+        //reader.pipe(transform).pipe(fft);
     });
 
     stream.pipe(reader);
