@@ -1,5 +1,23 @@
 const d3 = require('d3');
-const $ = require('jQuery');
+//const $ = require('jQuery');
+const EventEmitter = require('events').EventEmitter;
+const util = require('util');
+
+var currentTime = -1;
+var currentSelected = -1;
+var chartGroup;
+
+var self; // context reference
+
+var chordChart = function(data, destination)
+{
+    EventEmitter.call(this);
+    this.createChord(data, destination);
+    self = this;
+}
+
+util.inherits(chordChart, EventEmitter);
+module.exports = chordChart;
 
 function createTimeMatrix(data, fill)
 {
@@ -34,7 +52,12 @@ function createRibbonMatrix(data)
     return retMatrix;
 }
 
-function createChord(data, destination)
+chordChart.prototype.click = function(eventFunction)
+{
+    clickEvent = eventFunction;
+}
+
+chordChart.prototype.createChord = function (data, destination)
 {
     var matrix = createTimeMatrix(data, 1);
     //var ribbonMatrix = createRibbonMatrix(data);
@@ -46,6 +69,8 @@ function createChord(data, destination)
         innerFirstRadius = outerFirstRadius - 20,
         outerRadius = outerRadius = innerFirstRadius - 2,
         innerRadius = outerRadius - 10;
+
+    svg.selectAll(`*`).remove();
 
     var formatValue = d3.formatPrefix(",.0", 1e3);
 
@@ -62,7 +87,7 @@ function createChord(data, destination)
     }
 
     var chord = d3.chord()
-            .padAngle(0.01);
+            .padAngle(0);
 
     var firstArc = d3.arc()
             .innerRadius(outerFirstRadius)
@@ -102,10 +127,33 @@ function createChord(data, destination)
         .attr("class", "outer-group")
         .style("opacity", 0);
 
+    var setOpacity = function (g, idx, mouseOver)
+        {
+            currentSelected = (mouseOver) ? idx : -1;
+
+            var innerGroups = group.selectAll(".inner-group");
+            innerGroups.style("opacity", (mouseOver ? 0.5 : 1));
+            innerGroups
+                .filter(function (d) { return (d.index == currentSelected)})
+                .style("opacity", 1);
+            
+            var outerGroup = group
+              .selectAll('.outer-group')              
+              .filter(function (d) { return (d.index != currentTime);})
+              .style("opacity", 0);
+            group.selectAll(".outer-group")
+                 .filter(function (d) { return (d.index == currentSelected)})
+                 .style("opacity", 0.8);
+        }
+
     group.append("path")
         .style("fill", function(d) { return color(d.index); })
         .style("stroke", function(d) { return d3.rgb(color(d.index)).darker(); })
-        .attr("d", arc);
+        .attr("d", arc)
+        .attr("class", "inner-group")
+        .on("mouseover", function(group, index) { setOpacity(group, index, true) })
+        .on("mouseout", function(group, index) { setOpacity(group, index, false) })
+        .on("click", function (group, index) { self.emit('click', index); });
 
 /*    var groupTick = group.selectAll(".group-tick")
         .data(function(d) { return groupTicks(d, 1e3); })
@@ -143,20 +191,17 @@ function createChord(data, destination)
         });
     }
 
-    return group;
+    chartGroup = group;
 }
 
-function setChartTime(chartGroup, idx)
+chordChart.prototype.setChartTime = function(idx)
 {
-    var outerGroup = chartGroup.selectAll(".outer-group");
-
-    outerGroup.style("opacity", 0);
-    outerGroup.filter(function (d) { return (d.index == idx);})
+    currentTime = idx;
+    var outerGroup = chartGroup
+              .selectAll('.outer-group')
+              .filter(function (d) { return (d.index != currentSelected);})
+              .style("opacity", 0);
+    chartGroup.selectAll('.outer-group')
+              .filter(function (d) { return (d.index == currentTime);})
               .style("opacity", 1);
-}
-
-module.exports = 
-{
-    createChord: createChord,
-    setChartTime: setChartTime
 }

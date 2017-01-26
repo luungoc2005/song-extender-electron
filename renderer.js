@@ -4,13 +4,16 @@
 const $ = require('jQuery')
 const ipc = require('electron').ipcRenderer
 
-const selectDirBtn = $('.open-file-btn')
-const player = $("#player");
-const player2 = $("#player2");
+const selectDirBtn = $('.open-file-btn');
 const progressbar = $(".progress-bar");
+const playBtn = $(".play-btn");
+
+var currentFile = '';
 
 var playDelay = 15; // playing delay time, in ms
 var pauseDelay = 0;
+
+let audioPlayer;
 
 // probabilities
 
@@ -21,9 +24,10 @@ selectDirBtn.click(function (event)
 
 ipc.on('selected-file', function (event, path)
 {
-    $('.selected-file').html(`You selected: ${path}`);    
-    player.attr("src", path);
-    player2.attr("src", path);
+    $('.selected-file').html(`Opened: ${path}`);
+    currentFile = path;
+    playBtn.attr("disabled", true);
+    if (audioPlayer) audioPlayer.stop();
 })
 
 ipc.on('handled-error', function (event, path)
@@ -83,7 +87,6 @@ ipc.on('fft', function (sender, data)
             freq++;
         }
     }
-    //console.log(JSON.stringify(colors));
     //canvas.width = Math.max(xlength * (pos + 1), 4096);
 })
 
@@ -108,124 +111,32 @@ ipc.on('calc-progress', function(event, progress)
 
 ipc.on('analyse-result', function (event, data)
 {
-    player.data("result", data.groups);
-    player.data("pos", 0);
-    player.data("playing", 0);
-
-    player.prop("volume", 1);
-    player2.prop("volume", 0);
-    
-    player.css("display", "initial");
-    player2.css("display", "none");
-
-    player.trigger("load");
-    player2.trigger("load");
+    var audioModule = require('./js/audioPlayer.js');
+    audioPlayer = new audioModule(currentFile, data);
+    audioPlayer.startPlay();
 
     //draw charts
     var chartModule = require('./js/chart.js');
-    var chartGroup = chartModule.createChord(data, "svg");
+    var chartGroup = new chartModule(data, "svg");
 
-    var togglePlay = function (entity, action)
+    chartGroup.on('click', function (time)
     {
-        switch (action) {
-        case "play":
-            //entity.prop("volume", 1);
-            entity.trigger("play"); //play the new track
-            entity.stop(true).animate({volume: 1}, playDelay);
-            entity.css("display", "initial");
-            break;
-        case "pause":
-            entity.css("display", "none");
-            entity.stop(true).animate({volume: 0}, pauseDelay, 
-                function () {
-                    entity.trigger("pause");
-                });
-            //entity.trigger("pause");
-            break;
-        default:
-            break;
-		}
-    }
+        audioPlayer.seekPos(time);
+    });
 
-    var togglePlayer = function (time1, time2)
+    var updateChartTime = function()
     {
-        var playing = player.data("playing");
-        var pos = +player.data("pos");
-        if (playing == 0)
-        {
-            player.data("playing", 1);
-            player2.prop("currentTime", time1);
-
-            togglePlay(player, "pause");
-            togglePlay(player2, "play");
-            
-            //player.prop("currentTime", time1);
-        }
-        else
-        {
-            player.data("playing", 0);
-            player.prop("currentTime", time1);
-
-            togglePlay(player, "play");
-            togglePlay(player2, "pause");
-
-            //player2.prop("currentTime", time1);
-        }
+        var pos = Math.round(audioPlayer.getCurrentPos());
+        chartGroup.setChartTime(pos);
+        requestAnimationFrame(updateChartTime);
     }
+    requestAnimationFrame(updateChartTime);
 
-    var getCurrentPlayer = function()
-    {
-        var playing = player.data("playing");
-        if (playing == 0)
-        {
-            return player;
-        }
-        else
-        {
-            return player2;
-        }
-    }
+    //togglePlay(getCurrentPlayer(), "play");
+    playBtn.attr("disabled", false);
+})
 
-    var getCurrentTime = function()
-    {
-        return +getCurrentPlayer().prop("currentTime");
-    }
-
-    var decideFunc = function(probability)
-    {
-        return (Math.random() <= probability)
-    }
-
-    var timeUpdate = function ()
-    {
-        var pos = +player.data("pos");
-        var result = player.data("result");
-        if (pos < result.length)
-        {
-            var time1 = +result[pos].time1;
-            var time2 = +result[pos].time2;
-            var currentTime = +getCurrentTime();
-            chartModule.setChartTime(chartGroup, Math.round(currentTime));
-            if (currentTime >= time2)
-            {
-                var delay = currentTime - time2;
-                //console.log(`Delay: ${delay}s`)
-                time1 -= (delay);
-                togglePlayer(time1, time2);
-                if (pos + 1 >= result.length)
-                {
-                    player.data("pos", 0);
-                }
-                else
-                {
-                    player.data("pos", pos + 1);                    
-                }
-            }
-        }
-    }
-
-    //player.on("timeupdate", timeUpdate);
-    //player2.on("timeupdate", timeUpdate);
-    setInterval(timeUpdate, 1000/60);
-    player.trigger("play");
+playBtn.on("click", function()
+{
+    if (audioPlayer) audioPlayer.togglePlay();
 })

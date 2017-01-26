@@ -68,8 +68,19 @@ function openFile(file)
         fft = new FFTWriter(format, 2048);
         analyser = new FFTAnalyser(format, 2048);
         fftCount = 0;
+
+        var analysed = false;
         
         //sendToMainWindow('fft-clear', []);
+        setTimeout(function() {
+            if (!analysed)
+            {
+                analysed = true;
+                console.log("Finish reading file");
+                onHandledError(`Analysing: ${file}`);
+                analyser.calculateScores();
+            }
+        }, 10000);
 
         analyser.on('calc-progress', function(progress)
             {
@@ -84,9 +95,13 @@ function openFile(file)
 
         fft.on('finish', function()
             {
-                console.log("Finish reading file");
-                onHandledError(`Analysing: ${file}`);
-                analyser.calculateScores();
+                if (!analysed)
+                {
+                    analysed = true;
+                    console.log("Finish reading file");
+                    onHandledError(`Analysing: ${file}`);
+                    analyser.calculateScores();
+                }
             });
 
         fft.on('fft', function (fftResult)

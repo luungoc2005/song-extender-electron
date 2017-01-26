@@ -1,12 +1,12 @@
 const EventEmitter = require('events').EventEmitter;
 const util = require('util');
 
-//const RANGE = [20, 40, 80, 160, 300, 511];
-const RANGE = [40, 80, 120, 180, 300];
+const RANGE = [20, 40, 80, 160, 300, 511];
+//const RANGE = [40, 80, 120, 180, 300];
 var ranges = RANGE.length;
 
-const minDistanceSecs = 3; // 5 secs difference
-const analyseDistSecs = 2; // compare 3 secs
+const minDistanceSecs = 7; // 7 secs distance between points
+const analyseDistSecs = 2; // compare 2 secs
 
 var fftResult = [];
 //var fftRawData = [];
@@ -14,7 +14,14 @@ var minEnergy = [];
 var totalEnergy = [];
 var isBeat = [];
 var scores = [];
-var correction = []; // score correction
+var correction = []; // score correction - by average or standard deviation
+
+// score correction by variance and sum of strengths
+var pow_ = [];
+var avg_ = []; //average frequency
+//var sum_sqr = [];
+//var initial = [];
+//var n_ = [];
 
 var fft_size = 0;
 var sample_rate = 0;
@@ -39,7 +46,7 @@ function getIndex(value)
 
 function getTime(value)
 {
-    return ((snapToHighest(value) * fft_size) / sample_rate);//  + minEnergy[value]? for correction?
+    return ((value * fft_size) / sample_rate);//  + minEnergy[value]? for correction?
 }
 
 function snapToHighest(value)
@@ -58,6 +65,16 @@ function snapToHighest(value)
         if (isBeat[time2] == 1) return time2;
     }*/
     //return value;
+}
+
+function snapToLowest(value)
+{
+    var minIdx = -1;
+    for (var i = Math.max(value - snapDistance, 0); i < Math.min(value + snapDistance, totalEnergy.length); i++)
+    {
+        if (minIdx == -1 || totalEnergy[minIdx] > totalEnergy[i]) minIdx = i;
+    }
+    return (minIdx == -1) ? value : minIdx;
 }
 
 function createArray(length) 
@@ -87,6 +104,17 @@ var FFTAnalyser = function (format, fftSize)
     scores = [];
     similar = [];
     correction = createArray(ranges);
+    pow_ = createArray(ranges);
+    avg_ = createArray(ranges);
+    //sum_sqr = createArray(ranges);
+    //n_ = createArray(ranges);
+    initial = createArray(ranges);
+
+    //initialize initial array
+    for (var i = 0; i < initial.length; i++)
+    {
+        initial[i] = -1;
+    }
 
     minDistance = Math.round(samples * minDistanceSecs);
     analyseDist = Math.round(samples * analyseDistSecs);
@@ -108,11 +136,15 @@ FFTAnalyser.prototype.fftAvailable = function (data)
     for (var i = 0; i < fftData.length; i++)
     {
         var idx = getIndex(i);
-        if (idx < ranges && fftData[i] > scores[idx]) 
+        if (idx < ranges) 
         {
-            freqs[idx] = i;
-            scores[idx] = fftData[i];
-            correction[idx] += fftData[i];
+            pow_[idx] += fftData[i];
+            if (fftData[i] > scores[idx])
+            {
+                //var x = i;
+                freqs[idx] = i;
+                scores[idx] = fftData[i];
+            }
         }
     }
     fftResult.push(freqs);
@@ -131,21 +163,23 @@ FFTAnalyser.prototype.fftClear = function()
 // function diffScore (fftResult1, fftResult2)
 function diffScore (pos1, pos2)
 {
-    var absFunc = Math.abs; // locally scope variable for speed
+    var absFunc = Math.abs, // locally scope variable for speed
+        corr_ = correction;
+
     var score = 0;
-    // for (var i = 0; i < ranges; i++)
-    // {
-    //     //var reverseIdx = Math.max(ranges - i - 1, 0);
-    //     score += absFunc(fftResult1[i] - fftResult2[i]) * correction[i];
-    // }
-    //console.log(fftResult1.length + '-' + ranges);
+
     for (var a = 0; a < analyseDist; a++)
     {
         var fft1 = fftResult[pos1 + a],
             fft2 = fftResult[pos2 + a];
         for (var b = 0; b < ranges; b++)
         {
-            score += absFunc(fft1[b] - fft2[b]) * correction[b];
+            if (corr_[b] != null)
+            {
+                score += absFunc(fft1[b] - fft2[b]) * corr_[b];
+                //TODO: scale this by total energy of the block
+                //to account for volume differences
+            }
         }
     }
     return score;
@@ -245,6 +279,39 @@ FFTAnalyser.prototype.calculateBeats = function()
     }
 }
 
+FFTAnalyser.prototype.calculateCorrection = function()
+{
+    var freq = 0;
+    for (var a = 0; a < fftResult.length; a++)
+    {
+        for (freq = 0; freq < fftResult[a].length; freq++)
+        {            
+            avg_[freq] += fftResult[a][freq];
+        }
+    }
+    var powLength = fftResult.length * fft_size;
+    for (var b = 0; b < avg_.length; b++)
+    {
+        avg_[b] /= fftResult.length; //average of max frequencies
+        pow_[b] /= powLength;
+    }
+    for (var c = 0; c < fftResult.length; c++)
+    {
+        for (freq = 0; freq < fftResult[c].length; freq++)
+        {
+            var K = fftResult[c][freq] - avg_[freq];
+            correction[freq] += K * K;
+        }
+    }
+    for (var d = 0; d < correction.length; d++)
+    {
+        correction[d] /= fftResult.length; //average of max frequencies
+        correction[d] = Math.sqrt(correction[d]); // standard deviation
+        correction[d] = (1 / correction[d]) * (pow_[d] / pow_[0]);
+    }
+    console.log(pow_);
+}
+
 FFTAnalyser.prototype.calculateScores = function() 
 {
     //this.calculateBeats();
@@ -252,10 +319,11 @@ FFTAnalyser.prototype.calculateScores = function()
     var len = fftResult.length;
     var absFunc = Math.abs;
     console.log("Calculating correction vector");
-    for (var corr = 0; corr < correction.length; corr++)
-    {
-        correction[corr] = 1 / (correction[corr] / len);
-    }
+    
+    this.calculateCorrection();
+    
+    console.log(`correction: ${JSON.stringify(correction)}`);
+
     console.log("Calculating scores");
     //var total = totalTime();
     var total = len - analyseDist;
@@ -266,24 +334,19 @@ FFTAnalyser.prototype.calculateScores = function()
     {
         //var firstFft = fftArrayAt(a);
         var scoresAt = createArray(total);
-        for (var b = a; b < total; b++) //Is b=a correct?
+        for (var b = a + 1; b < total; b++) //Is b=a correct?
         {
             var score = 0;
-            if (b != a && absFunc(a - b) > minDistance)
+            if ((b - a) > analyseDist)
             {
-                //var secondFft = fftArrayAt(b);
-                // for (var i = 0; i < firstFft.length; i++)
-                // {
-                //     //score += diffScore(firstFft[i], secondFft[i]);
-                // }
                 score = diffScore(a, b);
                 avgScore += score;
                 scoresAt[b] = score;
             }
-
+            // calculate min/max/average scores
             if (score != 0)
             {
-                if (Math.abs(a - b) >= minDistance && (minScore == 0 || score < minScore))
+                if (b - a >= analyseDist && (minScore == 0 || score < minScore))
                     {
                         matchAt = `${a / samples}s and ${b / samples}s`;
                         minScore = score;
@@ -304,12 +367,19 @@ FFTAnalyser.prototype.calculateScores = function()
     //return scores;
     for (count = 1; count < 20; count++) // 1 to maximum 20% cutoff
     {
-        if (this.calculatePaths(count / 100) >= 10) break; // 5 points difference minimum
+        if (this.calculatePaths(count / 100) >= 5) break; // 5 points difference minimum
     }
 
     this.emit('paths-calculated', 
     {
-        groups: similar,
+        groups: similar.sort(function (a,b) 
+            {
+                if (a.time2 > b.time2)
+                    return 1;
+                else if (a.time2 < b.time2)
+                    return -1;
+                else return 0;
+            }),
         total: Math.round(fftResult.length / samples),
         cutoff: count
     });
@@ -328,47 +398,42 @@ FFTAnalyser.prototype.calculatePaths = function (cutOffPercent)
     //console.log(isArraySimilar([ 159, 356 ],[ 67, 260 ]) + ' - minDistance: ' + minDistance);
     for (var x = 0; x < total; x++)
     {
-        for (var y = x; y < total; y++)
+        for (var y = x + 1; y < total; y++)
         {
-            if (y != x)
+            if ((y - x) > minDistance && scores[x][y] && scores[x][y] <= cutOff)
             {
-                // if (absFunc(x - y) >= minDistance)
-                // {
-                if (scores[x][y] && scores[x][y] <= cutOff)
+                var time1 = x;
+                var time2 = y;
+                var newTime = [time1, time2];
+                // add to similar groups
+                if (!similarGroups)
                 {
-                    var time1 = x;
-                    var time2 = y;
-                    var newTime = [time1, time2];
-                    // add to similar groups
-                    if (!similarGroups)
+                    similarGroups.push([newTime]);
+                }
+                else
+                {
+                    var added = false;
+                    for (var a = 0; a < similarGroups.length; a++)
+                    {
+                        for (var b = 0; b < similarGroups[a].length; b++)
+                        {
+                            if (isArraySimilar(similarGroups[a][b], newTime))
+                            {
+                                //console.log(`is simlar? - ${similarGroups[a][b]}; ${newTime}`);
+                                similarGroups[a].push(newTime);
+                                added = true;
+                                break;
+                            }
+                            if (added) break;
+                        }
+                    }
+                    if (!added) // similar group not found, add new group
                     {
                         similarGroups.push([newTime]);
                     }
-                    else
-                    {
-                        var added = false;
-                        for (var a = 0; a < similarGroups.length; a++)
-                        {
-                            for (var b = 0; b < similarGroups[a].length; b++)
-                            {
-                                if (isArraySimilar(similarGroups[a][b], newTime))
-                                {
-                                    //console.log(`is simlar? - ${similarGroups[a][b]}; ${newTime}`);
-                                    similarGroups[a].push(newTime);
-                                    added = true;
-                                    break;
-                                }
-                                if (added) break;
-                            }
-                        }
-                        if (!added) // similar group not found, add new group
-                        {
-                            similarGroups.push([newTime]);
-                        }
-                    }
-                        //if (timeExists(time1, time2) == -1) similar.push([time1, time2]);
-                    // }
                 }
+                    //if (timeExists(time1, time2) == -1) similar.push([time1, time2]);
+                // }
             }
         }
     }

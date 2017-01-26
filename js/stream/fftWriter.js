@@ -10,6 +10,8 @@ let bitDepth,
     emitter,
     fft;
 
+let self;
+
 var fftWriter = function (format, size)
 {
     bitDepth = format.bitDepth;
@@ -26,6 +28,7 @@ var fftWriter = function (format, size)
             objectMode: true
         });
     
+    self = this;
 /*    setTimeout(function () 
         {
             this.end();
@@ -120,7 +123,7 @@ fftWriter.prototype._write = function(chunk, encoding, callback)
             }
             fft.forward(current);
             var retVal = fft.spectrum;
-            this.emit('fft', 
+            self.emit('fft', 
             {
                 fft: retVal,
                 total: totalEnergy

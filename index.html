@@ -2,12 +2,13 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>SongLoop</title>
-      <link rel="stylesheet" href="css/bootstrap.min.css" />
+    <title>Song Extender</title>
+    <link rel="stylesheet" href="css/bootstrap.min.css" />
   </head>
   <body>
       <div class="alert"></div>
       <button type="button" class="btn btn-default open-file-btn">Open file</button>
+      <button type="button" class="btn btn-default play-btn" disabled>Play / Pause</button>
       <div class="selected-file"></div>
       <!--<canvas id="fft" style="border:1px solid #c3c3c3;">Your browser does not support the canvas element.</canvas>-->
       <div class="progress" style = "margin-top:10px;">
@@ -15,8 +16,6 @@
           10%
         </div>
       </div>
-      <audio id="player" controls>Your browser does not support the Audio element.</audio>
-      <audio id="player2" style="display: none" controls>Your browser does not support the Audio element.</audio>
       <svg width="500" height="500"></svg>
   </body>
 
