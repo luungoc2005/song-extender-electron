@@ -58,7 +58,7 @@ ipc.on('open-file-dialog', function (event)
             cp.on('error', function(error)
             {
                 console.log(`child process encountered error ${error}`);
-            })
+            });
 
             cp.stdout.on('data', // try to keep the child running
                 function (data) {
