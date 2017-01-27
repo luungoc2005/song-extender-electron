@@ -13,10 +13,10 @@ let mainWindow
 
 function createWindow () {
   // Create the browser window.
-  mainWindow = new BrowserWindow({width: 800, height: 615})
-  mainWindow.setMenu(null);
+  mainWindow = new BrowserWindow({width: 800, height: 680})
+  // mainWindow.setMenu(null);
   mainWindow.setResizable(false);
-  mainWindow.setMaximizable(false);
+  // mainWindow.setMaximizable(false);
   // and load the index.html of the app.
   mainWindow.loadURL(url.format({
     pathname: path.join(__dirname, 'index.html'),

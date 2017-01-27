@@ -10,8 +10,8 @@ const fs = require('fs')
 
 const url = require('url')
 
-var cp = ChildProcess.fork('./js/worker.js');
-var mainWindow;
+let cp;
+let mainWindow;
 
 function sendToMainWindow(event, data) 
 {
@@ -24,12 +24,6 @@ function onHandledError(err)
     sendToMainWindow('handled-error', err)
     //dialog.showErrorBox('Error', err)
 }
-
-cp.on('message', function (data)
-{
-    //console.log(JSON.stringify(data));
-    sendToMainWindow(data.event, data.path);
-});
 
 ipc.on('open-file-dialog', function (event) 
 {
@@ -45,8 +39,35 @@ ipc.on('open-file-dialog', function (event)
         var baseName = encodeURIComponent(path.basename(uri));
         var dirName = path.dirname(uri);
         event.sender.send('selected-file', path.join(dirName, baseName));
-        //openFile(uri);        
-        cp.send({ fileName : uri });
+        //openFile(uri);
+        if (!cp) 
+        {
+            cp = ChildProcess.fork('./js/worker.js', [], { silent: true })
+            
+            cp.on('message', function (data)
+            {
+                //console.log(JSON.stringify(data));
+                sendToMainWindow(data.event, data.path);
+            });
+
+            cp.on('close', function (code, signal) 
+            {
+                console.log(`child process terminated with code ${code} due to receipt of signal ${signal}`);
+            });
+
+            cp.on('error', function(error)
+            {
+                console.log(`child process encountered error ${error}`);
+            })
+
+            cp.stdout.on('data', // try to keep the child running
+                function (data) {
+                    console.log('tail output: ' + data);
+                }
+            );
+        }
+        console.log(`Sending message - ${cp.send({ fileName : uri })}`);
+        // cp.send({ fileName : uri })
     }
   })
 })
