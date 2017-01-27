@@ -37,12 +37,19 @@ var audioPlayer = function(fileName, data)
         timeGroups = timeGroups.slice(0).sort(function (a, b) { return compareFunc(a, b, 'time1'); });
         //var sortedBySecond = timeGroups.slice(0).sort(function (a, b) { return compareFunc(a, b, 'time2'); });
 
-        sprites[`part${count++}`] = [0, timeGroups[0].time2];
         for (var i = 0; i < timeGroups.length; i++)
-        {
-            sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i].time2 - timeGroups[i].time1];
+        {            
             if ((i + 1) < timeGroups.length) // this item isn't last item
-            {
+            {                
+                if (i == 0)
+                {
+                    sprites[`part${count++}`] = [0, timeGroups[i].time2];
+                }
+                else
+                {
+                    sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i].time2 - timeGroups[i].time1];
+                }
+
                 sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i + 1].time2 - timeGroups[i].time1];
             }
             else // for last item
@@ -86,10 +93,11 @@ module.exports = audioPlayer;
 
 audioPlayer.prototype.startPlay = function (spritePos)
 {
-    spritePos = spritePos || currentPos;
-    if (!howlerObject.playing(0) && howlerObject)
+    currentPos = spritePos || currentPos;
+    if (howlerObject && !howlerObject.playing(playingId))
     {
-        playingId = howlerObject.play(`part${spritePos++}`);
+        playingId = howlerObject.play(`part${currentPos++}`);
+        console.log(`Current pos: ${currentPos}`);
     }
 }
 

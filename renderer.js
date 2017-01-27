@@ -115,7 +115,6 @@ ipc.on('analyse-result', function (event, data)
     $('.alert-message').html(""); // empty out alert message
     var audioModule = require('./js/audioPlayer.js');
     audioPlayer = new audioModule(currentFile, data);
-    audioPlayer.startPlay();
 
     //draw charts
     var chartModule = require('./js/chart.js');
@@ -137,6 +136,7 @@ ipc.on('analyse-result', function (event, data)
     //togglePlay(getCurrentPlayer(), "play");
     // playBtn.attr("disabled", false);
     playBtn.removeClass("disabled");
+    audioPlayer.startPlay();
 })
 
 playBtn.on("click", function()
