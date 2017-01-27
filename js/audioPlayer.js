@@ -8,6 +8,7 @@ let currentPos = 0;
 let spriteCount = 0;
 let seeking = false;
 let self;
+let playingId = -1;
 
 var audioPlayer = function(fileName, data)
 {
@@ -39,21 +40,21 @@ var audioPlayer = function(fileName, data)
         sprites[`part${count++}`] = [0, timeGroups[0].time2];
         for (var i = 0; i < timeGroups.length; i++)
         {
+            sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i].time2 - timeGroups[i].time1];
             if ((i + 1) < timeGroups.length) // this item isn't last item
             {
-                sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i].time2 - timeGroups[i].time1];
                 sprites[`part${count++}`] = [timeGroups[i].time1, timeGroups[i + 1].time2 - timeGroups[i].time1];
             }
             else // for last item
             {
-                var lastEndTime = timeGroups[i].time2;
-                sprites[`part${count++}`] = [lastEndTime, Math.ceil(data.total) - lastEndTime];
+                //var lastEndTime = timeGroups[i].time2;
+                sprites[`part${count++}`] = [timeGroups[i].time1, Math.ceil(data.total) - timeGroups[i].time1];
             }
         }
     }
 
     // convert to miliseconds
-    spriteCount = count - 1;
+    spriteCount = count;
     for (var a = 0; a < spriteCount; a++)
     {
         sprites[`part${a}`][0] *= 1000;
@@ -68,7 +69,11 @@ var audioPlayer = function(fileName, data)
                 {
                     if (!seeking)
                     {
-                        howlerObject.play(`part${currentPos++}`);
+                        if (currentPos > spriteCount - 1)
+                        {
+                            currentPos = 0;
+                        }
+                        playingId = howlerObject.play(`part${currentPos++}`);
                         console.log(`Current pos: ${currentPos}`);
                     }
                 }
@@ -84,7 +89,7 @@ audioPlayer.prototype.startPlay = function (spritePos)
     spritePos = spritePos || currentPos;
     if (!howlerObject.playing(0) && howlerObject)
     {
-        howlerObject.play(`part${spritePos++}`);
+        playingId = howlerObject.play(`part${spritePos++}`);
     }
 }
 
@@ -95,16 +100,16 @@ audioPlayer.prototype.togglePlay = function (action)
     switch (action)
     {
         case "play":
-            howlerObject.play();
+            playingId = howlerObject.play();
             break;
         case "pause":
             howlerObject.pause();
             break;
         default:
-            if (howlerObject.playing(0))
+            if (howlerObject.playing(playingId))
                 howlerObject.pause();
             else
-                howlerObject.play();
+                playingId = howlerObject.play();
             break;
     }
 }
@@ -119,8 +124,8 @@ audioPlayer.prototype.getCurrentPos = function ()
 
 audioPlayer.prototype.seekPos = function (pos)
 {
-    seeking = true;
     if (!howlerObject) return;
+    seeking = true;
     pos = pos || 0;
     var minDistance = -1;
     var minPos = -1;
@@ -136,25 +141,31 @@ audioPlayer.prototype.seekPos = function (pos)
             }
         }
     }
-    
-    var time = timeGroups[minPos].time1;
-    //var minError = -1;
-    minPos = -1;
-    // find the sprite with the corresponding time1 value
-    for (var b = 0; b < spriteCount; b++)
+    if (minPos == -1)
     {
-        var currentError = Math.abs(howlerObject._sprite[`part${b}`][0] / 1000 - time);
-        if (currentError == 0)
+        currentPos = spriteCount - 1;
+    }
+    else
+    {
+        var time = timeGroups[minPos].time1;
+        minPos = -1;
+        //var minError = -1;
+        // find the sprite with the corresponding time1 value
+        for (var b = 0; b < spriteCount; b++)
         {
-            minPos = b;
-            break;
+            var currentError = Math.abs(howlerObject._sprite[`part${b}`][0] / 1000 - time);
+            if (currentError == 0)
+            {
+                minPos = b;
+                break;
+            }
         }
+        currentPos = minPos;
     }
 
-    currentPos = minPos;
     // play the selected pos index
     howlerObject.stop(); // to end the current sprite if needed
-    howlerObject.play(`part${currentPos++}`);
+    playingId = howlerObject.play(`part${currentPos++}`);
     howlerObject.seek(pos);
     seeking = false;
     //howlerObject.play();

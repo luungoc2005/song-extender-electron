@@ -1,18 +1,18 @@
 {
-  "name": "electron-quick-start",
+  "name": "song-extender",
   "version": "1.0.0",
-  "description": "A minimal Electron application",
+  "description": "Experimental Song Extender",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-packager . song-extender --out=dist --ignore='^/dist$' --prune --platform=win32 --arch=x64 --icon='icon.ico'"
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [
-    "Electron",
-    "quick",
-    "start",
-    "tutorial",
-    "demo"
+    "song",
+    "extender",
+    "music",
+    "analysis"
   ],
   "author": "luungoc2005",
   "license": "",
@@ -21,12 +21,23 @@
     "electron-rebuild": "^1.5.6"
   },
   "dependencies": {
-    "bootstrap": "^3.3.7",
+    "bootstrap": "^4.0.0-alpha.6",
     "d3": "^4.4.3",
     "howler": "^2.0.2",
     "jquery": "^3.1.1",
     "lame": "^1.2.4",
     "speaker": "^0.3.0",
     "wav": "^1.0.1"
+  },
+  "build": {
+    "appId": "luungoc2005.songextender.100",
+    "productName": "Song Extender",
+    "homepage": "luungoc2005.github.io",
+    "mac": {
+      "category": "your.app.category.type"
+    },
+    "win": {
+      "iconUrl": "(windows-only) https link to icon"
+    }
   }
 }

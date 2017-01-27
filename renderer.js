@@ -24,9 +24,10 @@ selectDirBtn.click(function (event)
 
 ipc.on('selected-file', function (event, path)
 {
-    $('.selected-file').html(`Opened: ${path}`);
+    $('.selected-file').html(`${decodeURIComponent(path)}`);
     currentFile = path;
-    playBtn.attr("disabled", true);
+    // playBtn.attr("disabled", true);
+    playBtn.addClass("disabled");
     if (audioPlayer) audioPlayer.stop();
 })
 
@@ -36,7 +37,7 @@ ipc.on('handled-error', function (event, path)
         {
             if (typeof path === 'string')
                 {
-                    $('.alert').html(path);
+                    $('.alert-message').html(path);
                 }
             else
                 {
@@ -45,7 +46,7 @@ ipc.on('handled-error', function (event, path)
                     {
                         errorMsg += `${property}=${path[property]}\n`;
                     }
-                    $('.alert').html(errorMsg);
+                    $('.alert-message').html(errorMsg);
                 }
         }
 })
@@ -111,6 +112,7 @@ ipc.on('calc-progress', function(event, progress)
 
 ipc.on('analyse-result', function (event, data)
 {
+    $('.alert-message').html(""); // empty out alert message
     var audioModule = require('./js/audioPlayer.js');
     audioPlayer = new audioModule(currentFile, data);
     audioPlayer.startPlay();
@@ -133,7 +135,8 @@ ipc.on('analyse-result', function (event, data)
     requestAnimationFrame(updateChartTime);
 
     //togglePlay(getCurrentPlayer(), "play");
-    playBtn.attr("disabled", false);
+    // playBtn.attr("disabled", false);
+    playBtn.removeClass("disabled");
 })
 
 playBtn.on("click", function()

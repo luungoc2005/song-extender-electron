@@ -63,6 +63,7 @@ chordChart.prototype.createChord = function (data, destination)
     //var ribbonMatrix = createRibbonMatrix(data);
     
     var svg = d3.select(destination),
+        bbox = svg.node().getBBox(),
         width = +svg.attr("width"),
         height = +svg.attr("height"),
         outerFirstRadius = Math.min(width, height) * 0.5 - 10,

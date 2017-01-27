@@ -76,8 +76,8 @@ function openFile(file)
             if (!analysed)
             {
                 analysed = true;
-                console.log("Finish reading file");
-                onHandledError(`Analysing: ${file}`);
+                console.log("File timed out");
+                onHandledError(`Analysing ...`);
                 analyser.calculateScores();
             }
         }, 10000);
@@ -99,7 +99,8 @@ function openFile(file)
                 {
                     analysed = true;
                     console.log("Finish reading file");
-                    onHandledError(`Analysing: ${file}`);
+                    // onHandledError(`Analysing: ${file}`);
+                    onHandledError(`Analysing ...`);
                     analyser.calculateScores();
                 }
             });
@@ -108,7 +109,8 @@ function openFile(file)
             {
                 //fftCount +=1;
                 //onHandledError(`FFT: ${file} - ${JSON.stringify(format)} - ${fftCount}`);
-                onHandledError(`FFT: ${file} - ${JSON.stringify(format)}`);
+                // onHandledError(`FFT: ${file} - ${JSON.stringify(format)}`);
+                onHandledError(`Preprocessing ...`);
                 analyser.fftAvailable(fftResult);
                 //sendToMainWindow('fft', fftResult);
             });
