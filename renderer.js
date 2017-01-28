@@ -110,7 +110,7 @@ ipc.on('calc-progress', function(event, progress)
     progressbar.attr("aria-valuenow", prg);
 })
 
-ipc.on('analyse-result', function (event, data)
+ipc.on('paths-calculated', function (event, data)
 {
     $('.alert-message').html(""); // empty out alert message
     var audioModule = require('./js/audioPlayer.js');
