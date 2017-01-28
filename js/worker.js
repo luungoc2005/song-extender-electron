@@ -17,6 +17,8 @@ let analyser;
 let fftCount;
 //let speaker;
 
+console.log("Worker thread started");
+
 function sendToMainWindow(event, data) 
 {
     //var mainWindow = window.getFocusedWindow();
