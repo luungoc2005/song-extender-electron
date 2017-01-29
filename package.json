@@ -35,10 +35,10 @@
     "productName": "Song Extender",
     "homepage": "luungoc2005.github.io",
     "mac": {
-      "category": "your.app.category.type"
+      "category": "music"
     },
     "win": {
-      "iconUrl": "(windows-only) https link to icon"
+      "iconUrl": "icon.ico"
     }
   }
 }

@@ -4,7 +4,7 @@
 const path = require('path')
 const fs = require('fs')
 
-const Speaker = require('speaker');
+//const Speaker = require('speaker');
 const AudioDownsampler = require('./stream/audioDownsampler.js');
 const StereoToMonoReader = require('./stream/stereoToMonoReader.js');
 const FFTWriter = require('./stream/fftWriter.js');

@@ -43,7 +43,11 @@ ipc.on('open-file-dialog', function (event)
         if (!cp) 
         {
             var workerPath = path.join(__dirname, 'worker.js');
-            cp = ChildProcess.fork(workerPath)
+            console.log(`Worker module path: ${workerPath}`);
+            //cp = ChildProcess.fork(workerPath)
+            cp = ChildProcess.spawn('node', [workerPath], {
+                stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+            });
             
             cp.on('message', function (data)
             {
