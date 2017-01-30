@@ -66,7 +66,7 @@ function openFile(file)
     {
         transform = new StereoToMonoReader(format);
         downsample = new AudioDownsampler(format);
-        speaker = new Speaker(format);
+        //speaker = new Speaker(format);
         fft = new FFTWriter(format, 2048);
         analyser = new FFTAnalyser(format, 2048);
         fftCount = 0;
