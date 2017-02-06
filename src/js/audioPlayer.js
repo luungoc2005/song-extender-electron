@@ -1,7 +1,9 @@
 const EventEmitter = require('events').EventEmitter;
-const howler = require('howler');
+// const howler = require('howler');
+const howler = require('./howler.js');
 const util = require('util');
 const url = require('url');
+const path = require('path');
 
 let howlerObject;
 let timeGroups;
@@ -82,15 +84,18 @@ var audioPlayer = function(fileName, data)
         sprites[`part${a}`][1] *= 1000;
     }
     
-    howlerObject = new Howl(
-        {
-            src: url.format({
-                    pathname: fileName,
+    var sourceUri = url.format({
+                    pathname: fileName.replace(new RegExp('\\' + path.sep, 'g'), '/'),
                     protocol: 'file:',
                     slashes: true
-                }),
+                });
+    console.log(`Opening file ${sourceUri}`);
+    howlerObject = new howler.Howl(
+        {
+            src: sourceUri,
             sprite: sprites,
-            onend: onSpriteEnd
+            onend: onSpriteEnd,
+            onloaderror: function(id, message) { alert(`Unable to load audio: ${message}`); }
         });
     console.log(sprites);
 }

@@ -42,7 +42,12 @@ ipc.on('open-file-dialog', function (event)
         //openFile(uri);
         if (!cp) 
         {
-            cp = ChildProcess.fork('./js/worker.js', [], { silent: true })
+            var workerPath = path.join(__dirname, 'worker.js');
+            console.log(`Worker module path: ${workerPath}`);
+            cp = ChildProcess.fork(workerPath, [], { silent: true });
+            // cp = ChildProcess.spawn('node', [workerPath], {
+            //     stdio: ['inherit', 'inherit', 'inherit', 'ipc'],
+            // });
             
             cp.on('message', function (data)
             {
@@ -59,12 +64,6 @@ ipc.on('open-file-dialog', function (event)
             {
                 console.log(`child process encountered error ${error}`);
             });
-
-            cp.stdout.on('data', // try to keep the child running
-                function (data) {
-                    console.log('tail output: ' + data);
-                }
-            );
         }
         console.log(`Sending message - ${cp.send({ fileName : uri })}`);
         // cp.send({ fileName : uri })

@@ -4,7 +4,7 @@
 const path = require('path')
 const fs = require('fs')
 
-const Speaker = require('speaker');
+//const Speaker = require('speaker');
 const AudioDownsampler = require('./stream/audioDownsampler.js');
 const StereoToMonoReader = require('./stream/stereoToMonoReader.js');
 const FFTWriter = require('./stream/fftWriter.js');
@@ -16,6 +16,8 @@ let fft;
 let analyser;
 let fftCount;
 //let speaker;
+
+console.log("Worker thread started");
 
 function sendToMainWindow(event, data) 
 {
@@ -64,7 +66,7 @@ function openFile(file)
     {
         transform = new StereoToMonoReader(format);
         downsample = new AudioDownsampler(format);
-        speaker = new Speaker(format);
+        //speaker = new Speaker(format);
         fft = new FFTWriter(format, 2048);
         analyser = new FFTAnalyser(format, 2048);
         fftCount = 0;
