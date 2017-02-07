@@ -7,6 +7,7 @@ const ipc = require('electron').ipcRenderer
 const selectDirBtn = $('.open-file-btn');
 const progressbar = $(".progress-bar");
 const playBtn = $(".play-btn");
+const fileWarning = $(".file-warning");
 
 var currentFile = '';
 
@@ -118,6 +119,17 @@ ipc.on('analyse-result', function (event, data)
     $('.alert-message').html(""); // empty out alert message
     audioPlayer = null; //remove old reference
     audioPlayer = new audioModule(currentFile, data);
+
+    $('[data-toggle="tooltip"]').tooltip()
+    console.log(`Score cutoff coefficient: ${data.cutoff}`);
+    if (data.cutoff > 7) // cutoff is too high
+    {
+        fileWarning.css("visibility", "visible");
+    }
+    else
+    {
+        fileWarning.css("visibility", "hidden");
+    }
 
     //draw charts
     var chartGroup = null; //remove old reference
