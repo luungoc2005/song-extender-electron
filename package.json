@@ -5,26 +5,14 @@
   "description": "My Electron application description",
   "main": "src/index.js",
   "scripts": {
-<<<<<<< HEAD
-    "start": "electron .",
-    "dist": "electron-packager . song-extender --out=dist --ignore='^/dist$' --prune --platform=win32 --arch=x64 --icon=~\\icon.ico --overwrite"
-=======
     "inspect-main": "electron-inspector",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "lint": "eslint src"
->>>>>>> a37657919e83e0e48ece6e0463cd7bcbccfc28cb
   },
   "keywords": [],
   "author": "luungoc2005",
-<<<<<<< HEAD
-  "license": "",
-  "devDependencies": {
-    "electron": "^1.4.15",
-    "electron-inspector": "^0.1.4",
-    "electron-rebuild": "^1.5.6"
-=======
   "license": "MIT",
   "config": {
     "forge": {
@@ -59,7 +47,6 @@
         "name": "songextender"
       }
     }
->>>>>>> a37657919e83e0e48ece6e0463cd7bcbccfc28cb
   },
   "dependencies": {
     "bootstrap": "^3.3.7",
@@ -70,18 +57,6 @@
     "lame": "^1.2.4",
     "wav": "^1.0.1"
   },
-<<<<<<< HEAD
-  "build": {
-    "appId": "luungoc2005.songextender.100",
-    "productName": "Song Extender",
-    "homepage": "luungoc2005.github.io",
-    "mac": {
-      "category": "music"
-    },
-    "win": {
-      "iconUrl": "icon.ico"
-    }
-=======
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.22.0",
     "babel-preset-env": "^1.1.8",
@@ -93,6 +68,5 @@
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^3.0.2",
     "eslint-plugin-react": "^6.9.0"
->>>>>>> a37657919e83e0e48ece6e0463cd7bcbccfc28cb
   }
 }
