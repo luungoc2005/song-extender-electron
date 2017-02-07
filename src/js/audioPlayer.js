@@ -1,6 +1,9 @@
 const EventEmitter = require('events').EventEmitter;
-const howler = require('howler');
+// const howler = require('howler');
+const howler = require('./howler.js');
 const util = require('util');
+const url = require('url');
+const path = require('path');
 
 let howlerObject;
 let timeGroups;
@@ -9,6 +12,19 @@ let spriteCount = 0;
 let seeking = false;
 let self;
 let playingId = -1;
+
+function onSpriteEnd()
+{
+    if (!seeking)
+    {
+        if (currentPos > spriteCount - 1)
+        {
+            currentPos = 0;
+        }
+        playingId = howlerObject.play(`part${currentPos++}`);
+        console.log(`Current pos: ${currentPos}`);
+    }
+}
 
 var audioPlayer = function(fileName, data)
 {
@@ -59,7 +75,7 @@ var audioPlayer = function(fileName, data)
             }
         }
     }
-
+    console.log(timeGroups);
     // convert to miliseconds
     spriteCount = count;
     for (var a = 0; a < spriteCount; a++)
@@ -68,22 +84,18 @@ var audioPlayer = function(fileName, data)
         sprites[`part${a}`][1] *= 1000;
     }
     
-    howlerObject = new Howl(
+    var sourceUri = url.format({
+                    pathname: fileName.replace(new RegExp('\\' + path.sep, 'g'), '/'),
+                    protocol: 'file:',
+                    slashes: true
+                });
+    console.log(`Opening file ${sourceUri}`);
+    howlerObject = new howler.Howl(
         {
-            src: [fileName],
+            src: sourceUri,
             sprite: sprites,
-            onend: function ()
-                {
-                    if (!seeking)
-                    {
-                        if (currentPos > spriteCount - 1)
-                        {
-                            currentPos = 0;
-                        }
-                        playingId = howlerObject.play(`part${currentPos++}`);
-                        console.log(`Current pos: ${currentPos}`);
-                    }
-                }
+            onend: onSpriteEnd,
+            onloaderror: function(id, message) { alert(`Unable to load audio: ${message}`); }
         });
     console.log(sprites);
 }
@@ -149,9 +161,14 @@ audioPlayer.prototype.seekPos = function (pos)
             }
         }
     }
-    if (minPos == -1)
+    console.log(`Selected group ${minPos}`);
+    if (minPos == -1) // last part of the song
     {
         currentPos = spriteCount - 1;
+
+        howlerObject.stop(); // to end the current sprite if needed
+        playingId = howlerObject.play(`part${currentPos++}`);
+        howlerObject.seek(pos);
     }
     else
     {
@@ -169,12 +186,14 @@ audioPlayer.prototype.seekPos = function (pos)
             }
         }
         currentPos = minPos;
+
+        howlerObject.stop(); // to end the current sprite if needed
+        playingId = howlerObject.play(`part${currentPos - 1}`);
+        howlerObject.seek(pos);
     }
+    console.log(`Selected sprite ${currentPos}`);
 
     // play the selected pos index
-    howlerObject.stop(); // to end the current sprite if needed
-    playingId = howlerObject.play(`part${currentPos++}`);
-    howlerObject.seek(pos);
     seeking = false;
     //howlerObject.play();
 }
