@@ -1,8 +1,7 @@
 // This file is required by the index.html file and will
 // be executed in the renderer process for that window.
 // All of the Node.js APIs are available in this process.
-const $ = require('jquery')
-const ipc = require('electron').ipcRenderer
+const ipc = require('electron').ipcRenderer;
 
 const selectDirBtn = $('.open-file-btn');
 const progressbar = $(".progress-bar");
@@ -14,10 +13,10 @@ var currentFile = '';
 var playDelay = 15; // playing delay time, in ms
 var pauseDelay = 0;
 
-let audioPlayer;
+var audioPlayer;
 
-const audioModule = require('./js/audioPlayer.js');
-const chartModule = require('./js/chart.js');
+const audioModule = require('./js/audioPlayer.min.js');
+const chartModule = require('./js/chart.min.js');
 
 // probabilities
 

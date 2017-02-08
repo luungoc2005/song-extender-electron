@@ -42,7 +42,7 @@ ipc.on('open-file-dialog', function (event)
         //openFile(uri);
         if (!cp) 
         {
-            var workerPath = path.join(__dirname, 'worker.js');
+            var workerPath = path.join(__dirname, 'worker.min.js');
             console.log(`Worker module path: ${workerPath}`);
             cp = ChildProcess.fork(workerPath, [], { silent: true });
             // cp = ChildProcess.spawn('node', [workerPath], {

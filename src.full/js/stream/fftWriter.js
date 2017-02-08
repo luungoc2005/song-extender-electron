@@ -1,6 +1,6 @@
 const Writable = require('stream').Writable;
 const util = require('util');
-const DSP = require('./dsp.js');
+const DSP = require('./dsp.min.js');
 
 let bitDepth,
     channels,

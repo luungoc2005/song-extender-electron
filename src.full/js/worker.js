@@ -5,10 +5,10 @@ const path = require('path')
 const fs = require('fs')
 
 //const Speaker = require('speaker');
-const AudioDownsampler = require('./stream/audioDownsampler.js');
-const StereoToMonoReader = require('./stream/stereoToMonoReader.js');
-const FFTWriter = require('./stream/fftWriter.js');
-const FFTAnalyser = require('./analyser.js');
+const AudioDownsampler = require('./stream/audioDownsampler.min.js');
+const StereoToMonoReader = require('./stream/stereoToMonoReader.min.js');
+const FFTWriter = require('./stream/fftWriter.min.js');
+const FFTAnalyser = require('./analyser.min.js');
 
 let transform;
 let downsample;

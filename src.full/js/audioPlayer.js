@@ -1,6 +1,6 @@
 const EventEmitter = require('events').EventEmitter;
 // const howler = require('howler');
-const howler = require('./howler.js');
+const howler = require('./howler.min.js');
 const util = require('util');
 const url = require('url');
 const path = require('path');

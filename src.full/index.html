@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Song Extender</title>
     <link rel="stylesheet" href="css/bootstrap.min.css" />
-    <link rel="stylesheet" href="css/common.css" />
+    <link rel="stylesheet" href="css/common.min.css" />
   </head>
   <body>
 
@@ -34,12 +34,13 @@
 
   </body>
 
-  <script src="./js/tether.min.js"></script>
+  <script>
+    window.jQuery = window.$ = require('jquery');
+  </script>
+  <script src="js/tether.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
   <script>
     // You can also require other files to run in this process
-    const jQuery = require('jquery');
-    require('bootstrap');
-    require('./renderer.js');
-
-  </script>  
+    require('./renderer.min.js');
+  </script>
 </html>
