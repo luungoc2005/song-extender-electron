@@ -59,8 +59,30 @@ chordChart.prototype.click = function(eventFunction)
 
 chordChart.prototype.createChord = function (data, destination)
 {
-    var matrix = createTimeMatrix(data, 1);
+    // var matrix = createTimeMatrix(data, 1);
     //var ribbonMatrix = createRibbonMatrix(data);
+    var matrix = [];
+    for (var a = 0; a < data.total; a++)
+    {
+        matrix.push(1);
+    }
+    
+    var pie = d3.pie()(matrix);
+    var ribbonGroups = [];
+
+    for (var b = 0; b < data.groups.length; b++)
+    {
+        var time1 = Math.round(data.groups[b].time1);
+        var time2 = Math.round(data.groups[b].time2);
+        var time1obj = pie[time1];
+        var time2obj = pie[time2];
+        ribbonGroups.push(
+            {
+                source: time1obj,
+                target: time2obj
+            }
+        )
+    }
     
     var svg = d3.select(destination),
         bbox = svg.node().getBBox(),
@@ -74,21 +96,6 @@ chordChart.prototype.createChord = function (data, destination)
     svg.selectAll(`*`).remove();
 
     var formatValue = d3.formatPrefix(",.0", 1e3);
-
-    var filterValue = function(datum, idx)
-    {        
-        var groups = data.groups;
-        for (var i = 0; i < groups.length; i++)
-        {
-            var time1 = Math.round(groups[i].time1);
-            var time2 = Math.round(groups[i].time2);
-            if (datum.source.index == time1 && datum.target.index == time2) return true;
-        }
-        return false;
-    }
-
-    var chord = d3.chord()
-            .padAngle(0);
 
     var firstArc = d3.arc()
             .innerRadius(outerFirstRadius)
@@ -113,17 +120,17 @@ chordChart.prototype.createChord = function (data, destination)
 
     var g = svg.append("g")
         .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")")
-        .datum(chord(matrix));
+        .datum(function() { return pie; });
 
     var group = g.append("g")
         .attr("class", "groups")
         .selectAll("g")
-        .data(function(chords) { return chords.groups; })
+        .data(function() { return pie; })
         .enter().append("g");
 
     group.append("path")
-        .style("fill", function(d) { return color(d.index); })
-        .style("stroke", function(d) { return d3.rgb(color(d.index)).darker(); })
+        .style("fill", function(d, index) { return color(index); })
+        .style("stroke", function(d, index) { return d3.rgb(color(index)).darker(); })
         .attr("d", firstArc)
         .attr("class", "outer-group")
         .style("opacity", 0);
@@ -132,24 +139,27 @@ chordChart.prototype.createChord = function (data, destination)
         {
             currentSelected = (mouseOver) ? idx : -1;
 
+            var ribbonGroup = svg.selectAll(".ribbon-group");
+            ribbonGroup.style("opacity", (mouseOver ? 0.4 : 0.8))
+
             var innerGroups = group.selectAll(".inner-group");
             innerGroups.style("opacity", (mouseOver ? 0.5 : 1));
             innerGroups
-                .filter(function (d) { return (d.index == currentSelected)})
+                .filter(function (d) { return (d.index == currentSelected); })
                 .style("opacity", 1);
             
             var outerGroup = group
               .selectAll('.outer-group')              
-              .filter(function (d) { return (d.index != currentTime);})
+              .filter(function (d) { return (d.index != currentTime); })
               .style("opacity", 0);
             group.selectAll(".outer-group")
-                 .filter(function (d) { return (d.index == currentSelected)})
+                 .filter(function (d) { return (d.index == currentSelected); })
                  .style("opacity", 0.8);
         }
 
     group.append("path")
-        .style("fill", function(d) { return color(d.index); })
-        .style("stroke", function(d) { return d3.rgb(color(d.index)).darker(); })
+        .style("fill", function(d, index) { return color(index); })
+        .style("stroke", function(d, index) { return d3.rgb(color(index)).darker(); })
         .attr("d", arc)
         .attr("class", "inner-group")
         .on("mouseover", function(group, index) { setOpacity(group, index, true) })
@@ -173,16 +183,18 @@ chordChart.prototype.createChord = function (data, destination)
         .attr("transform", function(d) { return d.angle > Math.PI ? "rotate(180) translate(-16)" : null; })
         .style("text-anchor", function(d) { return d.angle > Math.PI ? "end" : null; })
         .text(function(d) { return formatValue(d.value); });*/
-
+        
     g.append("g")
         .attr("class", "ribbons")
         .selectAll("path")
-        .data(function(chords) { return chords; })
-        .enter().append("path")
-        .filter(function(data, idx) { return filterValue(data, idx); })
+        .data(ribbonGroups)
+        .enter()
+        .append("path")
         .attr("d", ribbon)
-        .style("fill", function(d) { return color(d.target.index); })
-        .style("stroke", function(d) { return d3.rgb(color(d.target.index)).darker(); });
+        .attr("class", "ribbon-group")
+        .style("fill", function(d, index) { return color(index); })
+        .style("stroke", function(d, index) { return d3.rgb(color(index)).darker(); })
+        .style("opacity", 0.8);
 
     // Returns an array of tick angles and values for a given group and step.
     function groupTicks(d, step) {
