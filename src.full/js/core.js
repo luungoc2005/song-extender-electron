@@ -11,12 +11,16 @@ const fs = require('fs')
 const url = require('url')
 
 let cp;
-let mainWindow;
+let currentSender;
 
 function sendToMainWindow(event, data) 
 {
-    if (!mainWindow) mainWindow = BrowserWindow.getFocusedWindow();
-    if (mainWindow) mainWindow.webContents.send(event, data);
+    if (!currentSender) 
+    {
+        currentSender = BrowserWindow.getFocusedWindow();
+        if (currentSender) currentSender = currentSender.webContents;
+    }
+    if (currentSender) currentSender.send(event, data);
 }
 
 function onHandledError(err)
@@ -39,6 +43,7 @@ ipc.on('open-file-dialog', function (event)
         var baseName = encodeURIComponent(path.basename(uri));
         var dirName = path.dirname(uri);
         event.sender.send('selected-file', path.join(dirName, baseName));
+        currentSender = event.sender;
         //openFile(uri);
         if (!cp) 
         {
